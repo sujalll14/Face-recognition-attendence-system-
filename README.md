@@ -1,6 +1,6 @@
 # Face-recognition-attendence-system- 
 
-An AI powered attendance management system that automatically detects and marks student attendance using facial recognition — eliminating manual roll calls with a smart biometric approach.
+An AI powered attendance management system that automatically detects and marks student attendance using facial recognition eliminating manual roll calls with a smart biometric approach.
 
 This project combines a Python-based facial recognition backend (Google Colab notebook) with a futuristic web-based UI to automate student attendance tracking. Teachers enroll students by uploading individual portraits, then upload group class photos per subject. The system identifies each face and marks attendance as Present or Absent per subject, exporting the results as an Excel report.
 
