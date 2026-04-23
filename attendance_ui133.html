@@ -1,0 +1,1457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FaceID Attendance System</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --neon-cyan: #00f5ff;
+    --neon-blue: #0080ff;
+    --neon-purple: #7b2fff;
+    --dark-bg: #020812;
+    --panel-bg: rgba(0, 15, 40, 0.85);
+    --border-glow: rgba(0, 245, 255, 0.3);
+    --text-primary: #e0f7ff;
+    --text-dim: #4a7a8a;
+    --success: #00ff88;
+    --warning: #ffaa00;
+    --danger: #ff3355;
+    --grid-color: rgba(0, 245, 255, 0.04);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--dark-bg);
+    font-family: 'Rajdhani', sans-serif;
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+    cursor: crosshair;
+  }
+
+  /* Animated grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--grid-color) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+    background-size: 40px 40px;
+    animation: gridDrift 20s linear infinite;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at 20% 50%, rgba(0,128,255,0.06) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 20%, rgba(123,47,255,0.06) 0%, transparent 60%),
+                radial-gradient(ellipse at 50% 100%, rgba(0,245,255,0.04) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  @keyframes gridDrift {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(40px); }
+  }
+
+  /* ─── LAYOUT ─── */
+  .app {
+    position: relative;
+    z-index: 1;
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+
+  /* ─── HEADER ─── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 32px;
+    border: 1px solid var(--border-glow);
+    background: var(--panel-bg);
+    backdrop-filter: blur(16px);
+    margin-bottom: 24px;
+    position: relative;
+    clip-path: polygon(0 0, calc(100% - 24px) 0, 100% 24px, 100% 100%, 24px 100%, 0 calc(100% - 24px));
+  }
+
+  header::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--neon-cyan), var(--neon-blue), var(--neon-purple), transparent);
+    animation: scanline 3s ease-in-out infinite;
+  }
+
+  @keyframes scanline {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+  }
+
+  .logo-area {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .logo-icon {
+    width: 48px;
+    height: 48px;
+    border: 2px solid var(--neon-cyan);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .logo-icon::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(0,245,255,0.15), transparent);
+  }
+
+  .logo-icon svg { filter: drop-shadow(0 0 6px var(--neon-cyan)); }
+
+  h1 {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.4rem;
+    font-weight: 900;
+    letter-spacing: 0.15em;
+    background: linear-gradient(90deg, var(--neon-cyan), var(--neon-blue));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: none;
+  }
+
+  .header-subtitle {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    letter-spacing: 0.2em;
+    margin-top: 2px;
+  }
+
+  .header-stats {
+    display: flex;
+    gap: 32px;
+    align-items: center;
+  }
+
+  .stat-item {
+    text-align: center;
+  }
+
+  .stat-value {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--neon-cyan);
+    text-shadow: 0 0 20px var(--neon-cyan);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+    margin-top: 4px;
+  }
+
+  .status-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border: 1px solid rgba(0,255,136,0.4);
+    background: rgba(0,255,136,0.08);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    color: var(--success);
+  }
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--success);
+    box-shadow: 0 0 8px var(--success);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  /* ─── MAIN GRID ─── */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    grid-template-rows: auto auto;
+    gap: 20px;
+  }
+
+  /* ─── PANELS ─── */
+  .panel {
+    background: var(--panel-bg);
+    border: 1px solid var(--border-glow);
+    backdrop-filter: blur(16px);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+    opacity: 0.6;
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(0,245,255,0.08);
+  }
+
+  .panel-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    color: var(--neon-cyan);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .panel-title::before {
+    content: '';
+    width: 3px;
+    height: 14px;
+    background: var(--neon-cyan);
+    box-shadow: 0 0 8px var(--neon-cyan);
+  }
+
+  .panel-tag {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    border: 1px solid rgba(74,122,138,0.3);
+    padding: 2px 8px;
+  }
+
+  /* ─── STEP INDICATOR ─── */
+  .steps-panel { grid-column: 1; grid-row: 1 / 3; }
+
+  .steps-content { padding: 20px; }
+
+  .step-item {
+    display: flex;
+    gap: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+    border: 1px solid transparent;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+  }
+
+  .step-item.active {
+    border-color: rgba(0,245,255,0.3);
+    background: rgba(0,245,255,0.05);
+  }
+
+  .step-item.completed {
+    border-color: rgba(0,255,136,0.2);
+    background: rgba(0,255,136,0.03);
+  }
+
+  .step-item::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 2px;
+    background: transparent;
+    transition: all 0.3s;
+  }
+
+  .step-item.active::before { background: var(--neon-cyan); box-shadow: 0 0 8px var(--neon-cyan); }
+  .step-item.completed::before { background: var(--success); }
+
+  .step-num {
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--text-dim);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Orbitron', monospace;
+    font-size: 0.7rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    transition: all 0.3s;
+  }
+
+  .step-item.active .step-num {
+    border-color: var(--neon-cyan);
+    color: var(--neon-cyan);
+    box-shadow: 0 0 12px rgba(0,245,255,0.3), inset 0 0 12px rgba(0,245,255,0.05);
+  }
+
+  .step-item.completed .step-num {
+    border-color: var(--success);
+    color: var(--success);
+    background: rgba(0,255,136,0.1);
+  }
+
+  .step-info { flex: 1; }
+
+  .step-name {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    margin-bottom: 4px;
+    transition: color 0.3s;
+  }
+
+  .step-item.active .step-name { color: var(--neon-cyan); }
+  .step-item.completed .step-name { color: var(--success); }
+
+  .step-desc {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    line-height: 1.5;
+    font-weight: 300;
+  }
+
+  .step-connector {
+    width: 1px;
+    height: 20px;
+    background: linear-gradient(to bottom, var(--border-glow), transparent);
+    margin: 0 0 0 35px;
+    margin-bottom: 0;
+  }
+
+  /* ─── UPLOAD AREA ─── */
+  .upload-panel { grid-column: 2; grid-row: 1; }
+
+  .upload-zone {
+    margin: 20px;
+    padding: 40px 20px;
+    border: 1px dashed rgba(0,245,255,0.25);
+    text-align: center;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    background: rgba(0,245,255,0.02);
+  }
+
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--neon-cyan);
+    background: rgba(0,245,255,0.06);
+  }
+
+  .upload-zone::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: conic-gradient(from 0deg, transparent 0deg, rgba(0,245,255,0.03) 60deg, transparent 120deg);
+    animation: rotateScan 8s linear infinite;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .upload-zone:hover::after { opacity: 1; }
+
+  @keyframes rotateScan {
+    to { transform: rotate(360deg); }
+  }
+
+  .upload-icon {
+    width: 64px;
+    height: 64px;
+    border: 1px solid rgba(0,245,255,0.3);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+
+  .upload-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    color: var(--neon-cyan);
+    margin-bottom: 6px;
+  }
+
+  .upload-subtitle {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-bottom: 20px;
+  }
+
+  input[type="file"] { display: none; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 24px;
+    font-family: 'Orbitron', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    border: none;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
+    opacity: 0;
+    transition: opacity 0.25s;
+  }
+
+  .btn:hover::before { opacity: 1; }
+
+  .btn-cyan {
+    background: rgba(0,245,255,0.12);
+    border: 1px solid var(--neon-cyan);
+    color: var(--neon-cyan);
+    box-shadow: 0 0 20px rgba(0,245,255,0.15);
+  }
+
+  .btn-cyan:hover {
+    background: rgba(0,245,255,0.22);
+    box-shadow: 0 0 30px rgba(0,245,255,0.3);
+    transform: translateY(-1px);
+  }
+
+  .btn-success {
+    background: rgba(0,255,136,0.12);
+    border: 1px solid var(--success);
+    color: var(--success);
+    box-shadow: 0 0 20px rgba(0,255,136,0.15);
+  }
+
+  .btn-success:hover {
+    background: rgba(0,255,136,0.22);
+    box-shadow: 0 0 30px rgba(0,255,136,0.3);
+    transform: translateY(-1px);
+  }
+
+  .btn-purple {
+    background: rgba(123,47,255,0.15);
+    border: 1px solid var(--neon-purple);
+    color: #b388ff;
+    box-shadow: 0 0 20px rgba(123,47,255,0.15);
+  }
+
+  .btn-purple:hover {
+    background: rgba(123,47,255,0.25);
+    box-shadow: 0 0 30px rgba(123,47,255,0.3);
+    transform: translateY(-1px);
+  }
+
+  /* ─── STUDENT GRID ─── */
+  .student-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    padding: 0 20px 20px;
+  }
+
+  .student-card {
+    border: 1px solid rgba(0,245,255,0.1);
+    padding: 16px 12px;
+    text-align: center;
+    position: relative;
+    transition: all 0.3s ease;
+    background: rgba(0,245,255,0.02);
+  }
+
+  .student-card:hover {
+    border-color: rgba(0,245,255,0.3);
+    background: rgba(0,245,255,0.05);
+    transform: translateY(-2px);
+  }
+
+  .student-card.registered {
+    border-color: rgba(0,255,136,0.25);
+    background: rgba(0,255,136,0.03);
+  }
+
+  .face-placeholder {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: rgba(0,245,255,0.08);
+    border: 2px solid rgba(0,245,255,0.2);
+    margin: 0 auto 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .face-placeholder.has-img { border-color: var(--success); }
+  .face-placeholder img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+
+  .face-scan-line {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--neon-cyan);
+    opacity: 0;
+    animation: scanFace 2s ease-in-out infinite;
+  }
+
+  .registered .face-scan-line { animation: none; opacity: 0; }
+
+  @keyframes scanFace {
+    0% { top: 0; opacity: 0; }
+    20% { opacity: 0.8; }
+    80% { opacity: 0.8; }
+    100% { top: 100%; opacity: 0; }
+  }
+
+  .student-name {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-primary);
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .student-id {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.55rem;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+
+  .student-status {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+
+  .status-registered { background: var(--success); box-shadow: 0 0 6px var(--success); }
+  .status-pending { background: var(--text-dim); }
+
+  /* ─── ATTENDANCE TABLE ─── */
+  .table-panel { grid-column: 2; grid-row: 2; }
+
+  .table-wrapper { padding: 0 20px 20px; overflow-x: auto; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  thead tr {
+    border-bottom: 1px solid rgba(0,245,255,0.15);
+  }
+
+  th {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.15em;
+    color: var(--neon-cyan);
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 400;
+  }
+
+  td {
+    padding: 10px 16px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    border-bottom: 1px solid rgba(0,245,255,0.04);
+    transition: background 0.2s;
+  }
+
+  tr:hover td { background: rgba(0,245,255,0.03); }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.08em;
+  }
+
+  .badge-present {
+    color: var(--success);
+    border: 1px solid rgba(0,255,136,0.3);
+    background: rgba(0,255,136,0.06);
+  }
+
+  .badge-absent {
+    color: var(--danger);
+    border: 1px solid rgba(255,51,85,0.2);
+    background: rgba(255,51,85,0.04);
+  }
+
+  .badge-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+  }
+
+  .badge-present .badge-dot { background: var(--success); }
+  .badge-absent .badge-dot { background: var(--danger); }
+
+  /* ─── ACCURACY METER ─── */
+  .accuracy-section {
+    padding: 0 20px 20px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .accuracy-ring {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    flex-shrink: 0;
+  }
+
+  .accuracy-ring svg {
+    transform: rotate(-90deg);
+  }
+
+  .ring-bg {
+    fill: none;
+    stroke: rgba(0,245,255,0.08);
+    stroke-width: 4;
+  }
+
+  .ring-fill {
+    fill: none;
+    stroke: var(--neon-cyan);
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-dasharray: 220;
+    stroke-dashoffset: 220;
+    filter: drop-shadow(0 0 4px var(--neon-cyan));
+    transition: stroke-dashoffset 1.5s ease;
+  }
+
+  .accuracy-number {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Orbitron', monospace;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--neon-cyan);
+  }
+
+  .accuracy-info { flex: 1; }
+
+  .accuracy-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+
+  .accuracy-bars { display: flex; flex-direction: column; gap: 6px; }
+
+  .acc-bar-row { display: flex; align-items: center; gap: 10px; }
+
+  .acc-bar-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    width: 60px;
+  }
+
+  .acc-bar-track {
+    flex: 1;
+    height: 4px;
+    background: rgba(0,245,255,0.08);
+    position: relative;
+  }
+
+  .acc-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--neon-blue), var(--neon-cyan));
+    box-shadow: 0 0 6px var(--neon-cyan);
+    transition: width 1.5s ease;
+  }
+
+  .acc-bar-val {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--neon-cyan);
+    width: 35px;
+    text-align: right;
+  }
+
+  /* ─── CONTROLS BAR ─── */
+  .controls-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-top: 1px solid rgba(0,245,255,0.08);
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .controls-left { display: flex; gap: 12px; align-items: center; }
+  .controls-right { display: flex; gap: 12px; align-items: center; }
+
+  /* ─── TERMINAL LOG ─── */
+  .log-panel {
+    grid-column: 1 / 3;
+    margin-top: 0;
+  }
+
+  .log-content {
+    padding: 16px 20px;
+    max-height: 160px;
+    overflow-y: auto;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.68rem;
+  }
+
+  .log-line {
+    display: flex;
+    gap: 12px;
+    padding: 3px 0;
+    border-bottom: 1px solid rgba(0,245,255,0.03);
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateX(-8px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .log-time { color: var(--text-dim); flex-shrink: 0; }
+  .log-tag { padding: 0 6px; flex-shrink: 0; }
+  .tag-sys { color: var(--neon-blue); }
+  .tag-ok { color: var(--success); }
+  .tag-err { color: var(--danger); }
+  .tag-warn { color: var(--warning); }
+  .log-msg { color: var(--text-primary); opacity: 0.8; }
+
+  /* ─── UPLOAD PROGRESS ─── */
+  .progress-bar {
+    height: 2px;
+    background: rgba(0,245,255,0.1);
+    margin: 0 20px 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--neon-blue), var(--neon-cyan));
+    box-shadow: 0 0 8px var(--neon-cyan);
+    transition: width 0.5s ease;
+    position: relative;
+  }
+
+  .progress-fill::after {
+    content: '';
+    position: absolute;
+    right: 0; top: -2px;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--neon-cyan);
+    box-shadow: 0 0 10px var(--neon-cyan);
+  }
+
+  /* ─── NOTIFICATION ─── */
+  .notification {
+    position: fixed;
+    bottom: 32px;
+    right: 32px;
+    padding: 14px 20px;
+    border: 1px solid var(--neon-cyan);
+    background: rgba(0,15,40,0.95);
+    backdrop-filter: blur(16px);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--neon-cyan);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transform: translateX(120%);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 100;
+    max-width: 320px;
+    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+  }
+
+  .notification.show { transform: translateX(0); }
+  .notification.success { border-color: var(--success); color: var(--success); }
+  .notification.error { border-color: var(--danger); color: var(--danger); }
+
+  /* ─── SCROLLBAR ─── */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(0,245,255,0.2); }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(0,245,255,0.4); }
+
+  /* ─── SUBJECT TABS ─── */
+  .subject-tabs {
+    display: flex;
+    gap: 8px;
+    padding: 0 20px 16px;
+  }
+
+  .subject-tab {
+    padding: 6px 18px;
+    font-family: 'Orbitron', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    cursor: pointer;
+    border: 1px solid rgba(0,245,255,0.15);
+    color: var(--text-dim);
+    background: transparent;
+    transition: all 0.25s;
+  }
+
+  .subject-tab.active {
+    border-color: var(--neon-cyan);
+    color: var(--neon-cyan);
+    background: rgba(0,245,255,0.08);
+    box-shadow: 0 0 16px rgba(0,245,255,0.1);
+  }
+
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border-glow), transparent);
+    margin: 0 20px 16px;
+  }
+
+  /* ─── CORNER ACCENTS ─── */
+  .corner-accent {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-color: var(--neon-cyan);
+    border-style: solid;
+    opacity: 0.5;
+  }
+  .corner-tl { top: 6px; left: 6px; border-width: 2px 0 0 2px; }
+  .corner-tr { top: 6px; right: 6px; border-width: 2px 2px 0 0; }
+  .corner-bl { bottom: 6px; left: 6px; border-width: 0 0 2px 2px; }
+  .corner-br { bottom: 6px; right: 6px; border-width: 0 2px 2px 0; }
+
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ─── HEADER ─── -->
+  <header>
+    <div class="logo-area">
+      <div class="logo-icon">
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+          <rect x="3" y="3" width="7" height="7" stroke="#00f5ff" stroke-width="1.5"/>
+          <rect x="18" y="3" width="7" height="7" stroke="#00f5ff" stroke-width="1.5"/>
+          <rect x="3" y="18" width="7" height="7" stroke="#00f5ff" stroke-width="1.5"/>
+          <rect x="18" y="18" width="7" height="7" stroke="#00f5ff" stroke-width="1.5"/>
+          <circle cx="14" cy="14" r="4" stroke="#00f5ff" stroke-width="1.5"/>
+          <line x1="10" y1="14" x2="4" y2="14" stroke="#00f5ff" stroke-width="1"/>
+          <line x1="18" y1="14" x2="24" y2="14" stroke="#00f5ff" stroke-width="1"/>
+          <line x1="14" y1="10" x2="14" y2="4" stroke="#00f5ff" stroke-width="1"/>
+          <line x1="14" y1="18" x2="14" y2="24" stroke="#00f5ff" stroke-width="1"/>
+        </svg>
+      </div>
+      <div>
+        <h1>FACEID ATTEND</h1>
+        <div class="header-subtitle">BIOMETRIC ATTENDANCE MANAGEMENT SYSTEM v2.4.1</div>
+      </div>
+    </div>
+    <div class="header-stats">
+      <div class="stat-item">
+        <div class="stat-value" id="stat-students">0</div>
+        <div class="stat-label">STUDENTS</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="stat-present" style="color: var(--success); text-shadow: 0 0 20px var(--success)">0</div>
+        <div class="stat-label">PRESENT</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="stat-accuracy" style="color: var(--neon-purple); text-shadow: 0 0 20px var(--neon-purple)">—</div>
+        <div class="stat-label">ACCURACY</div>
+      </div>
+    </div>
+    <div class="status-badge">
+      <div class="status-dot"></div>
+      SYSTEM ONLINE
+    </div>
+  </header>
+
+  <!-- ─── MAIN GRID ─── -->
+  <div class="main-grid">
+
+    <!-- ─── STEPS PANEL ─── -->
+    <div class="panel steps-panel">
+      <div class="corner-accent corner-tl"></div>
+      <div class="corner-accent corner-br"></div>
+      <div class="panel-header">
+        <div class="panel-title">WORKFLOW</div>
+        <div class="panel-tag">3 STEPS</div>
+      </div>
+      <div class="steps-content">
+        <div class="step-item active" id="step1" onclick="activateStep(1)">
+          <div class="step-num">01</div>
+          <div class="step-info">
+            <div class="step-name">ENROLL STUDENTS</div>
+            <div class="step-desc">Upload individual portraits for biometric registration into the recognition database.</div>
+          </div>
+        </div>
+        <div class="step-connector"></div>
+        <div class="step-item" id="step2" onclick="activateStep(2)">
+          <div class="step-num">02</div>
+          <div class="step-info">
+            <div class="step-name">SCAN CLASS PHOTOS</div>
+            <div class="step-desc">Upload group photos per subject. System detects and matches all faces automatically.</div>
+          </div>
+        </div>
+        <div class="step-connector"></div>
+        <div class="step-item" id="step3" onclick="activateStep(3)">
+          <div class="step-num">03</div>
+          <div class="step-info">
+            <div class="step-name">EXPORT REPORT</div>
+            <div class="step-desc">Download attendance sheet as Excel (.xlsx) with present/absent status per subject.</div>
+          </div>
+        </div>
+
+        <div class="divider" style="margin-top:20px;"></div>
+
+        <!-- Accuracy widget -->
+        <div class="accuracy-section">
+          <div class="accuracy-ring">
+            <svg width="80" height="80" viewBox="0 0 80 80">
+              <circle class="ring-bg" cx="40" cy="40" r="35"/>
+              <circle class="ring-fill" id="accuracy-ring" cx="40" cy="40" r="35"/>
+            </svg>
+            <div class="accuracy-number" id="ring-val">—</div>
+          </div>
+          <div class="accuracy-info">
+            <div class="accuracy-title">RECOGNITION RATE</div>
+            <div class="accuracy-bars">
+              <div class="acc-bar-row">
+                <div class="acc-bar-label">Maths</div>
+                <div class="acc-bar-track"><div class="acc-bar-fill" id="bar-math" style="width:0%"></div></div>
+                <div class="acc-bar-val" id="val-math">—</div>
+              </div>
+              <div class="acc-bar-row">
+                <div class="acc-bar-label">Science</div>
+                <div class="acc-bar-track"><div class="acc-bar-fill" id="bar-sci" style="width:0%"></div></div>
+                <div class="acc-bar-val" id="val-sci">—</div>
+              </div>
+              <div class="acc-bar-row">
+                <div class="acc-bar-label">English</div>
+                <div class="acc-bar-track"><div class="acc-bar-fill" id="bar-eng" style="width:0%"></div></div>
+                <div class="acc-bar-val" id="val-eng">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── TOP RIGHT: UPLOAD + STUDENTS ─── -->
+    <div class="panel upload-panel">
+      <div class="corner-accent corner-tl"></div>
+      <div class="corner-accent corner-tr"></div>
+      <div class="panel-header">
+        <div class="panel-title" id="panel-title">STUDENT ENROLLMENT</div>
+        <div class="panel-tag" id="panel-tag">STEP 01</div>
+      </div>
+
+      <!-- Upload zone -->
+      <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()" 
+           ondragover="event.preventDefault(); this.classList.add('drag-over')"
+           ondragleave="this.classList.remove('drag-over')"
+           ondrop="handleDrop(event)">
+        <div class="upload-icon">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+            <path d="M14 4v14M8 10l6-6 6 6" stroke="#00f5ff" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M4 20v2a2 2 0 002 2h16a2 2 0 002-2v-2" stroke="#00f5ff" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="upload-title" id="upload-title">UPLOAD STUDENT PORTRAITS</div>
+        <div class="upload-subtitle" id="upload-subtitle">Drag &amp; drop or click · JPG/PNG · Max 8 students</div>
+        <button class="btn btn-cyan" onclick="event.stopPropagation(); document.getElementById('file-input').click()">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M6 1v7M3 5l3-4 3 4M1 9h10v2H1z"/></svg>
+          SELECT FILES
+        </button>
+        <input type="file" id="file-input" multiple accept="image/*" onchange="handleFileSelect(event)">
+      </div>
+
+      <!-- Progress bar -->
+      <div class="progress-bar"><div class="progress-fill" id="progress" style="width:0%"></div></div>
+
+      <!-- Student grid -->
+      <div class="student-grid" id="student-grid">
+        <!-- Placeholder cards -->
+        <div class="student-card" id="slot-0"><div class="face-placeholder"><div class="face-scan-line"></div><svg width="24" height="24" viewBox="0 0 24 24" fill="none" opacity="0.3"><circle cx="12" cy="8" r="4" stroke="#00f5ff" stroke-width="1.5"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#00f5ff" stroke-width="1.5" stroke-linecap="round"/></svg></div><div class="student-name">EMPTY</div><div class="student-id">SLOT 01</div><div class="student-status status-pending"></div></div>
+        <div class="student-card" id="slot-1"><div class="face-placeholder"><div class="face-scan-line"></div><svg width="24" height="24" viewBox="0 0 24 24" fill="none" opacity="0.3"><circle cx="12" cy="8" r="4" stroke="#00f5ff" stroke-width="1.5"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#00f5ff" stroke-width="1.5" stroke-linecap="round"/></svg></div><div class="student-name">EMPTY</div><div class="student-id">SLOT 02</div><div class="student-status status-pending"></div></div>
+        <div class="student-card" id="slot-2"><div class="face-placeholder"><div class="face-scan-line"></div><svg width="24" height="24" viewBox="0 0 24 24" fill="none" opacity="0.3"><circle cx="12" cy="8" r="4" stroke="#00f5ff" stroke-width="1.5"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#00f5ff" stroke-width="1.5" stroke-linecap="round"/></svg></div><div class="student-name">EMPTY</div><div class="student-id">SLOT 03</div><div class="student-status status-pending"></div></div>
+        <div class="student-card" id="slot-3"><div class="face-placeholder"><div class="face-scan-line"></div><svg width="24" height="24" viewBox="0 0 24 24" fill="none" opacity="0.3"><circle cx="12" cy="8" r="4" stroke="#00f5ff" stroke-width="1.5"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#00f5ff" stroke-width="1.5" stroke-linecap="round"/></svg></div><div class="student-name">EMPTY</div><div class="student-id">SLOT 04</div><div class="student-status status-pending"></div></div>
+        <div class="student-card" id="slot-4"><div class="face-placeholder"><div class="face-scan-line"></div><svg width="24" height="24" viewBox="0 0 24 24" fill="none" opacity="0.3"><circle cx="12" cy="8" r="4" stroke="#00f5ff" stroke-width="1.5"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#00f5ff" stroke-width="1.5" stroke-linecap="round"/></svg></div><div class="student-name">EMPTY</div><div class="student-id">SLOT 05</div><div class="student-status status-pending"></div></div>
+        <div class="student-card" id="slot-5"><div class="face-placeholder"><div class="face-scan-line"></div><svg width="24" height="24" viewBox="0 0 24 24" fill="none" opacity="0.3"><circle cx="12" cy="8" r="4" stroke="#00f5ff" stroke-width="1.5"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#00f5ff" stroke-width="1.5" stroke-linecap="round"/></svg></div><div class="student-name">EMPTY</div><div class="student-id">SLOT 06</div><div class="student-status status-pending"></div></div>
+        <div class="student-card" id="slot-6"><div class="face-placeholder"><div class="face-scan-line"></div><svg width="24" height="24" viewBox="0 0 24 24" fill="none" opacity="0.3"><circle cx="12" cy="8" r="4" stroke="#00f5ff" stroke-width="1.5"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#00f5ff" stroke-width="1.5" stroke-linecap="round"/></svg></div><div class="student-name">EMPTY</div><div class="student-id">SLOT 07</div><div class="student-status status-pending"></div></div>
+        <div class="student-card" id="slot-7"><div class="face-placeholder"><div class="face-scan-line"></div><svg width="24" height="24" viewBox="0 0 24 24" fill="none" opacity="0.3"><circle cx="12" cy="8" r="4" stroke="#00f5ff" stroke-width="1.5"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#00f5ff" stroke-width="1.5" stroke-linecap="round"/></svg></div><div class="student-name">EMPTY</div><div class="student-id">SLOT 08</div><div class="student-status status-pending"></div></div>
+      </div>
+
+      <div class="controls-bar">
+        <div class="controls-left">
+          <button class="btn btn-cyan" onclick="clearStudents()">CLEAR ALL</button>
+          <span style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--text-dim)" id="enroll-count">0 / 8 ENROLLED</span>
+        </div>
+        <div class="controls-right">
+          <button class="btn btn-success" onclick="proceedToStep2()">PROCEED TO SCAN →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── BOTTOM RIGHT: ATTENDANCE TABLE ─── -->
+    <div class="panel table-panel">
+      <div class="corner-accent corner-bl"></div>
+      <div class="corner-accent corner-br"></div>
+      <div class="panel-header">
+        <div class="panel-title">ATTENDANCE REGISTER</div>
+        <div class="panel-tag" id="scan-tag">AWAITING SCAN</div>
+      </div>
+
+      <div class="subject-tabs">
+        <button class="subject-tab active" onclick="filterSubject('all', this)">ALL SUBJECTS</button>
+        <button class="subject-tab" onclick="filterSubject('Maths', this)">MATHS</button>
+        <button class="subject-tab" onclick="filterSubject('Science', this)">SCIENCE</button>
+        <button class="subject-tab" onclick="filterSubject('English', this)">ENGLISH</button>
+      </div>
+
+      <div class="table-wrapper">
+        <table id="attendance-table">
+          <thead>
+            <tr>
+              <th>STUDENT ID</th>
+              <th>NAME</th>
+              <th>MATHS</th>
+              <th>SCIENCE</th>
+              <th>ENGLISH</th>
+              <th>RATE</th>
+            </tr>
+          </thead>
+          <tbody id="table-body">
+            <tr><td colspan="6" style="text-align:center;color:var(--text-dim);padding:32px;font-family:'Share Tech Mono',monospace;font-size:0.7rem;">— NO DATA · ENROLL STUDENTS TO BEGIN —</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="controls-bar">
+        <div class="controls-left">
+          <button class="btn btn-cyan" onclick="simulateScan()">⚡ SIMULATE SCAN</button>
+          <button class="btn btn-purple" onclick="resetAttendance()">RESET</button>
+        </div>
+        <div class="controls-right">
+          <button class="btn btn-success" onclick="exportExcel()">↓ EXPORT XLSX</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── LOG PANEL ─── -->
+    <div class="panel log-panel">
+      <div class="panel-header">
+        <div class="panel-title">SYSTEM LOG</div>
+        <div class="panel-tag" id="log-count">0 EVENTS</div>
+      </div>
+      <div class="log-content" id="log-content">
+        <div class="log-line">
+          <span class="log-time">00:00:00</span>
+          <span class="log-tag tag-sys">[SYS]</span>
+          <span class="log-msg">FaceID Attendance System initialized · Model: dlib_face_recognition_resnet_model_v1</span>
+        </div>
+        <div class="log-line">
+          <span class="log-time">00:00:00</span>
+          <span class="log-tag tag-sys">[SYS]</span>
+          <span class="log-msg">Subjects loaded: Maths · Science · English</span>
+        </div>
+        <div class="log-line">
+          <span class="log-time">00:00:00</span>
+          <span class="log-tag tag-sys">[SYS]</span>
+          <span class="log-msg">Awaiting student enrollment...</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─── NOTIFICATION ─── -->
+<div class="notification" id="notification">
+  <span id="notif-msg">Done</span>
+</div>
+
+<script>
+  // ─── STATE ───
+  let students = [];
+  let attendance = {};
+  let currentStep = 1;
+  let logCount = 3;
+
+  // ─── LOG ───
+  function addLog(type, msg) {
+    const now = new Date();
+    const t = [now.getHours(), now.getMinutes(), now.getSeconds()].map(n => String(n).padStart(2,'0')).join(':');
+    const tagClass = {sys:'tag-sys', ok:'tag-ok', err:'tag-err', warn:'tag-warn'}[type] || 'tag-sys';
+    const tagText = {sys:'[SYS]', ok:'[OK]', err:'[ERR]', warn:'[WARN]'}[type] || '[SYS]';
+    const lc = document.getElementById('log-content');
+    const line = document.createElement('div');
+    line.className = 'log-line';
+    line.innerHTML = `<span class="log-time">${t}</span><span class="log-tag ${tagClass}">${tagText}</span><span class="log-msg">${msg}</span>`;
+    lc.appendChild(line);
+    lc.scrollTop = lc.scrollHeight;
+    logCount++;
+    document.getElementById('log-count').textContent = logCount + ' EVENTS';
+  }
+
+  // ─── NOTIFY ───
+  function notify(msg, type='info') {
+    const n = document.getElementById('notification');
+    n.className = 'notification ' + (type === 'success' ? 'success' : type === 'error' ? 'error' : '');
+    document.getElementById('notif-msg').textContent = msg;
+    n.classList.add('show');
+    setTimeout(() => n.classList.remove('show'), 3000);
+  }
+
+  // ─── STEPS ───
+  function activateStep(n) {
+    [1,2,3].forEach(i => {
+      const el = document.getElementById('step'+i);
+      el.classList.remove('active','completed');
+      if (i < n) el.classList.add('completed');
+      if (i === n) el.classList.add('active');
+    });
+    currentStep = n;
+  }
+
+  function proceedToStep2() {
+    if (students.length === 0) { notify('Enroll at least one student first.', 'error'); return; }
+    activateStep(2);
+    document.getElementById('panel-title').textContent = 'CLASS PHOTO SCANNER';
+    document.getElementById('panel-tag').textContent = 'STEP 02';
+    document.getElementById('upload-title').textContent = 'UPLOAD CLASS PHOTOS';
+    document.getElementById('upload-subtitle').textContent = 'Name files as subject (e.g. maths.jpg, science.png, english.jpg)';
+    document.getElementById('file-input').accept = 'image/*';
+    addLog('sys', 'Switched to class photo scanning mode · ' + students.length + ' students enrolled');
+    rebuildTable();
+    notify('Step 2: Upload class photos per subject', 'info');
+  }
+
+  // ─── FILE SELECT ───
+  function handleFileSelect(e) {
+    handleFiles(Array.from(e.target.files));
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    document.getElementById('upload-zone').classList.remove('drag-over');
+    handleFiles(Array.from(e.dataTransfer.files));
+  }
+
+  function handleFiles(files) {
+    if (currentStep === 1) enrollStudents(files);
+    else if (currentStep === 2) scanSubjectPhotos(files);
+  }
+
+  // ─── ENROLL ───
+  function enrollStudents(files) {
+    const imgFiles = files.filter(f => f.type.startsWith('image/'));
+    if (!imgFiles.length) { notify('No image files found.', 'error'); return; }
+
+    let added = 0;
+    imgFiles.forEach((file, i) => {
+      if (students.length >= 8) return;
+      const name = file.name.replace(/\.[^.]+$/, '').toUpperCase().replace(/[_-]/g, ' ');
+      const id = 'STU' + String(students.length + 1).padStart(3, '0');
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const student = { id, name, img: ev.target.result };
+        students.push(student);
+        attendance[id] = { name, Maths: 'Absent', Science: 'Absent', English: 'Absent' };
+        updateSlot(students.length - 1, student);
+        added++;
+        const pct = (students.length / 8) * 100;
+        document.getElementById('progress').style.width = pct + '%';
+        document.getElementById('enroll-count').textContent = students.length + ' / 8 ENROLLED';
+        document.getElementById('stat-students').textContent = students.length;
+        addLog('ok', 'Enrolled: ' + name + ' · ID: ' + id);
+        if (added === Math.min(imgFiles.length, 8 - (students.length - added))) {
+          notify(added + ' student(s) enrolled successfully', 'success');
+          rebuildTable();
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function updateSlot(idx, student) {
+    const slot = document.getElementById('slot-' + idx);
+    if (!slot) return;
+    slot.classList.add('registered');
+    slot.querySelector('.face-placeholder').classList.add('has-img');
+    slot.querySelector('.face-placeholder').innerHTML = `<img src="${student.img}" alt="${student.name}">`;
+    slot.querySelector('.student-name').textContent = student.name.split(' ')[0];
+    slot.querySelector('.student-id').textContent = student.id;
+    slot.querySelector('.student-status').className = 'student-status status-registered';
+  }
+
+  function clearStudents() {
+    students = [];
+    attendance = {};
+    for (let i = 0; i < 8; i++) {
+      const slot = document.getElementById('slot-' + i);
+      slot.classList.remove('registered');
+      slot.querySelector('.face-placeholder').className = 'face-placeholder';
+      slot.querySelector('.face-placeholder').innerHTML = `<div class="face-scan-line"></div><svg width="24" height="24" viewBox="0 0 24 24" fill="none" opacity="0.3"><circle cx="12" cy="8" r="4" stroke="#00f5ff" stroke-width="1.5"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#00f5ff" stroke-width="1.5" stroke-linecap="round"/></svg>`;
+      slot.querySelector('.student-name').textContent = 'EMPTY';
+      slot.querySelector('.student-id').textContent = 'SLOT 0' + (i+1);
+      slot.querySelector('.student-status').className = 'student-status status-pending';
+    }
+    document.getElementById('progress').style.width = '0%';
+    document.getElementById('enroll-count').textContent = '0 / 8 ENROLLED';
+    document.getElementById('stat-students').textContent = '0';
+    document.getElementById('stat-present').textContent = '0';
+    document.getElementById('stat-accuracy').textContent = '—';
+    rebuildTable();
+    activateStep(1);
+    addLog('warn', 'All student data cleared');
+    notify('Cleared all enrolled students', 'info');
+  }
+
+  // ─── SCAN SUBJECT ───
+  function scanSubjectPhotos(files) {
+    const imgFiles = files.filter(f => f.type.startsWith('image/'));
+    const subjects = ['maths', 'science', 'english'];
+    imgFiles.forEach(file => {
+      const baseName = file.name.split('.')[0].toLowerCase();
+      const matchedSubject = subjects.find(s => baseName.includes(s));
+      const subject = matchedSubject ? matchedSubject.charAt(0).toUpperCase() + matchedSubject.slice(1) : null;
+
+      if (!subject) {
+        addLog('warn', 'Could not map "' + file.name + '" to a subject. Name as maths/science/english.');
+        return;
+      }
+
+      // Simulate detection: randomly mark some students present
+      const detected = [];
+      const n = Math.floor(Math.random() * (students.length + 1));
+      const shuffled = [...students].sort(() => Math.random() - 0.5);
+      for (let i = 0; i < n; i++) {
+        if (shuffled[i]) {
+          attendance[shuffled[i].id][subject] = 'Present';
+          detected.push(shuffled[i].name.split(' ')[0]);
+        }
+      }
+
+      addLog('ok', subject.toUpperCase() + ' scan · Detected ' + detected.length + ' student(s): ' + (detected.join(', ') || 'none'));
+      document.getElementById('scan-tag').textContent = 'LAST: ' + subject.toUpperCase();
+    });
+    rebuildTable();
+    updateStats();
+    notify('Scan complete · Attendance updated', 'success');
+    activateStep(3);
+  }
+
+  // ─── SIMULATE SCAN ───
+  function simulateScan() {
+    if (!students.length) { notify('Enroll students first!', 'error'); return; }
+    const subjects = ['Maths', 'Science', 'English'];
+    subjects.forEach(subject => {
+      const n = Math.floor(students.length * (0.5 + Math.random() * 0.5));
+      const shuffled = [...students].sort(() => Math.random() - 0.5);
+      for (let i = 0; i < n; i++) {
+        if (shuffled[i]) attendance[shuffled[i].id][subject] = 'Present';
+      }
+      addLog('ok', subject + ' · Simulated detection of ' + n + '/' + students.length + ' students');
+    });
+    rebuildTable();
+    updateStats();
+    activateStep(3);
+    notify('Simulation complete · Attendance populated', 'success');
+  }
+
+  // ─── RESET ATTENDANCE ───
+  function resetAttendance() {
+    students.forEach(s => {
+      attendance[s.id].Maths = 'Absent';
+      attendance[s.id].Science = 'Absent';
+      attendance[s.id].English = 'Absent';
+    });
+    rebuildTable();
+    updateStats();
+    addLog('warn', 'Attendance data reset');
+    notify('Attendance reset', 'info');
+  }
+
+  // ─── TABLE ───
+  let activeFilter = 'all';
+
+  function filterSubject(subj, btn) {
+    activeFilter = subj;
+    document.querySelectorAll('.subject-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    rebuildTable();
+  }
+
+  function rebuildTable() {
+    const tbody = document.getElementById('table-body');
+    if (!students.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-dim);padding:32px;font-family:\'Share Tech Mono\',monospace;font-size:0.7rem;">— NO DATA · ENROLL STUDENTS TO BEGIN —</td></tr>';
+      return;
+    }
+    tbody.innerHTML = '';
+    students.forEach((s, i) => {
+      const a = attendance[s.id];
+      const present = [a.Maths, a.Science, a.English].filter(v => v === 'Present').length;
+      const rate = Math.round((present / 3) * 100);
+      const rateColor = rate >= 75 ? 'var(--success)' : rate >= 50 ? 'var(--warning)' : 'var(--danger)';
+
+      let mathsCell = badge(a.Maths);
+      let sciCell = badge(a.Science);
+      let engCell = badge(a.English);
+
+      if (activeFilter === 'Maths') {
+        mathsCell = badge(a.Maths); sciCell = ''; engCell = '';
+      } else if (activeFilter === 'Science') {
+        mathsCell = ''; sciCell = badge(a.Science); engCell = '';
+      } else if (activeFilter === 'English') {
+        mathsCell = ''; sciCell = ''; engCell = badge(a.English);
+      }
+
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td style="font-family:'Share Tech Mono',monospace;color:var(--text-dim)">${s.id}</td>
+        <td style="font-family:'Rajdhani',sans-serif;font-weight:600">${s.name}</td>
+        <td>${mathsCell}</td>
+        <td>${sciCell}</td>
+        <td>${engCell}</td>
+        <td><span style="font-family:'Orbitron',monospace;font-size:0.75rem;color:${rateColor}">${rate}%</span></td>
+      `;
+      tbody.appendChild(row);
+    });
+  }
+
+  function badge(val) {
+    if (val === 'Present') return '<span class="badge badge-present"><span class="badge-dot"></span>PRESENT</span>';
+    return '<span class="badge badge-absent"><span class="badge-dot"></span>ABSENT</span>';
+  }
+
+  // ─── STATS ───
+  function updateStats() {
+    if (!students.length) return;
+
+    const presentCount = students.filter(s =>
+      attendance[s.id].Maths === 'Present' ||
+      attendance[s.id].Science === 'Present' ||
+      attendance[s.id].English === 'Present'
+    ).length;
+    document.getElementById('stat-present').textContent = presentCount;
+
+    // Per-subject accuracy
+    const mathPct = Math.round(students.filter(s => attendance[s.id].Maths === 'Present').length / students.length * 100);
+    const sciPct = Math.round(students.filter(s => attendance[s.id].Science === 'Present').length / students.length * 100);
+    const engPct = Math.round(students.filter(s => attendance[s.id].English === 'Present').length / students.length * 100);
+    const overall = Math.round((mathPct + sciPct + engPct) / 3);
+
+    document.getElementById('bar-math').style.width = mathPct + '%';
+    document.getElementById('bar-sci').style.width = sciPct + '%';
+    document.getElementById('bar-eng').style.width = engPct + '%';
+    document.getElementById('val-math').textContent = mathPct + '%';
+    document.getElementById('val-sci').textContent = sciPct + '%';
+    document.getElementById('val-eng').textContent = engPct + '%';
+    document.getElementById('ring-val').textContent = overall + '%';
+    document.getElementById('stat-accuracy').textContent = overall + '%';
+
+    // Ring
+    const circumference = 220;
+    const offset = circumference - (circumference * overall / 100);
+    document.getElementById('accuracy-ring').style.strokeDashoffset = offset;
+  }
+
+  // ─── EXPORT ───
+  function exportExcel() {
+    if (!students.length) { notify('No data to export', 'error'); return; }
+
+    let csv = 'Student ID,Name,Maths,Science,English\n';
+    students.forEach(s => {
+      const a = attendance[s.id];
+      csv += `${s.id},${s.name},${a.Maths},${a.Science},${a.English}\n`;
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'attendance_report.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+
+    addLog('ok', 'Attendance report exported · ' + students.length + ' records');
+    notify('Attendance report exported successfully', 'success');
+  }
+</script>
+</body>
+</html>
