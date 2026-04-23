@@ -5,14 +5,14 @@ An AI powered attendance management system that automatically detects and marks 
 This project combines a Python-based facial recognition backend (Google Colab notebook) with a futuristic web-based UI to automate student attendance tracking. Teachers enroll students by uploading individual portraits, then upload group class photos per subject. The system identifies each face and marks attendance as Present or Absent per subject, exporting the results as an Excel report.
 
 Features
-📸 Student Enrollment — Register up to 8 students via individual portrait uploads
-🔍 Automatic Face Detection — Detects and identifies multiple faces in a single group photo
-📚 Subject-wise Attendance — Tracks attendance separately for Maths, Science, and English
-📊 Live Accuracy Meter — Animated ring chart showing recognition rate per subject
-🖥️ Interactive Web Dashboard — Cyberpunk-styled UI with drag-and-drop uploads, student grid, and attendance table
-📥 Excel/CSV Export — One-click download of the full attendance report
-☁️ Google Colab Ready — Backend runs entirely in-browser via Colab, no local setup needed
-🔄 Simulate Scan — Built-in simulation mode in the UI for demo/testing without real images
+📸 Student Enrollment  Register up to 8 students via individual portrait uploads
+🔍 Automatic Face Detection  Detects and identifies multiple faces in a single group photo
+📚 Subject-wise Attendance  Tracks attendance separately for Maths, Science, and English
+📊 Live Accuracy Meter  Animated ring chart showing recognition rate per subject
+🖥️ Interactive Web Dashboard  Cyberpunk-styled UI with drag-and-drop uploads, student grid, and attendance table
+📥 Excel/CSV Export one-click download of the full attendance report
+☁️ Google Colab Ready  Backend runs entirely in-browser via Colab, no local setup needed
+🔄 Simulate Scan  Built-in simulation mode in the UI for demo/testing without real images
 
 Backend (Colab Notebook)
 Open Google Colab and upload `face_recognition_attendance_system.ipynb`
